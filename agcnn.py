@@ -1,9 +1,26 @@
 import tensorflow as tf
 from tensorflow.keras import layers, models
-from spatial_attention_block import SpatialAttentionBlock2D 
+import numpy as np
+import cv2
+from spatial_attention_block import SpatialAttentionBlock2D
+
+def preprocess_fundus_image(image):
+    image_resized = cv2.resize(image, (224, 224))
+    image_normalized = image_resized / 255.0
+    img_gray = cv2.cvtColor(image_normalized, cv2.COLOR_RGB2GRAY)
+    clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8))
+    img_clahe = clahe.apply(img_gray)
+    img_blurred = cv2.GaussianBlur(img_clahe, (5, 5), 0)
+    img_processed = np.stack([img_blurred] * 3, axis=-1)
+
+    return img_processed
+
+def preprocess_dataset(image, label):
+    image = tf.numpy_function(preprocess_fundus_image, [image], tf.float32)
+    return image, label
 
 def AGCNN(num_classes=2):
-    inputs = tf.keras.Input(shape=(224, 224, 3))  # Adjust input shape for 2D (64x64 image with 3 channels)
+    inputs = tf.keras.Input(shape=(224, 224, 3)) 
 
     x = layers.Conv2D(32, kernel_size=3, padding='same', activation='relu')(inputs)
     x = SpatialAttentionBlock2D(kernel_size=5)(x)
@@ -57,9 +74,8 @@ if __name__ == "__main__":
     model = AGCNN(num_classes=2)
     model.summary()
 
-    example_input = tf.random.normal((16, 64, 64, 3))  # Example input with 3 channels
-    example_labels = tf.random.uniform((16,), minval=0, maxval=2, dtype=tf.int32)
-
-    train_dataset = tf.data.Dataset.from_tensor_slices((example_input, example_labels)).batch(4)
-    
+    example_input = np.random.rand(16, 224, 224, 3).astype(np.float32)  
+    example_labels = np.random.randint(0, 2, size=(16,))  
+    train_dataset = tf.data.Dataset.from_tensor_slices((example_input, example_labels))
+    train_dataset = train_dataset.map(preprocess_dataset).batch(4)
     trained_model = train_agcnn_model(model, train_dataset)
