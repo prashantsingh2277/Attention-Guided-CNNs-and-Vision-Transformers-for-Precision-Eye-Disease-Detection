@@ -1,23 +1,32 @@
 import tensorflow as tf
 import numpy as np
 import pandas as pd
+import cv2
 from tensorflow.keras.applications import ResNet50
 from tensorflow.keras.preprocessing.image import ImageDataGenerator
 from tensorflow.keras.applications.resnet50 import preprocess_input
 
 def preprocess_data(dataset_path, batch_size=32):
-    # ImageDataGenerator for data preprocessing and augmentation
+    def custom_preprocess_image(image):
+        image_resized = cv2.resize(image, (224, 224))
+        image_normalized = image_resized / 255.0
+        img_gray = cv2.cvtColor(image_normalized, cv2.COLOR_RGB2GRAY)
+        clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8))
+        img_clahe = clahe.apply(img_gray)
+        img_blurred = cv2.GaussianBlur(img_clahe, (5, 5), 0)
+        img_processed = np.stack([img_blurred] * 3, axis=-1)
+        return img_processed
+
     datagen = ImageDataGenerator(
-        preprocessing_function=preprocess_input,
-        rescale=1.0/255.0  # Optional: Rescale pixel values if not using a specific preprocessing function
+        preprocessing_function=custom_preprocess_image,
+        rescale=1.0/255.0
     )
 
-    # Load the dataset
     dataset = datagen.flow_from_directory(
         directory=dataset_path,
         target_size=(224, 224),
         batch_size=batch_size,
-        class_mode='sparse',  # Use 'sparse' if labels are integers, 'categorical' for one-hot encoding
+        class_mode='sparse',
         shuffle=True
     )
     return dataset
@@ -26,13 +35,11 @@ def extract_features(cnn_model, dataset):
     features_list = []
     labels_list = []
 
-    # Extract features
     for images, labels in dataset:
         features = cnn_model.predict(images)
         features_list.append(features)
         labels_list.append(labels)
-
-        # Stop after one full epoch if using a generator that loops indefinitely
+        
         if len(features_list) * dataset.batch_size >= dataset.samples:
             break
 
@@ -42,13 +49,11 @@ def extract_features(cnn_model, dataset):
     df = pd.DataFrame(features)
     df['label'] = labels
     return df
-
-# Example usage (if running this file directly)
+    
 if __name__ == "__main__":
-    dataset_path = 'path/to/your/dataset'  # Replace with your dataset path
+    dataset_path = ''
     batch_size = 32
 
-    # Load pre-trained ResNet50 model and remove the top layer
     cnn_model = ResNet50(weights='imagenet', include_top=False, pooling='avg')
 
     dataset = preprocess_data(dataset_path, batch_size=batch_size)
