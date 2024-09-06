@@ -3,6 +3,9 @@ from tensorflow.keras import layers, models
 import numpy as np
 import cv2
 from spatial_attention_block import SpatialAttentionBlock2D
+import SE
+
+
 
 def preprocess_fundus_image(image):
     image_resized = cv2.resize(image, (224, 224))
@@ -20,33 +23,40 @@ def preprocess_dataset(image, label):
     return image, label
 
 def AGCNN(num_classes=2):
-    inputs = tf.keras.Input(shape=(224, 224, 3)) 
+    inputs = tf.keras.Input(shape=(224, 224, 3))
 
     x = layers.Conv2D(32, kernel_size=3, padding='same', activation='relu')(inputs)
+    x = se_block(x)
     x = SpatialAttentionBlock2D(kernel_size=5)(x)
     x = layers.MaxPooling2D(pool_size=2)(x)
 
     x = layers.Conv2D(64, kernel_size=3, padding='same', activation='relu')(x)
+    x = se_block(x)
     x = SpatialAttentionBlock2D(kernel_size=5)(x)
     x = layers.MaxPooling2D(pool_size=2)(x)
 
     x = layers.Conv2D(128, kernel_size=3, padding='same', activation='relu')(x)
+    x = se_block(x)
     x = SpatialAttentionBlock2D(kernel_size=5)(x)
     x = layers.MaxPooling2D(pool_size=2)(x)
 
     x = layers.Conv2D(256, kernel_size=3, padding='same', activation='relu')(x)
+    x = se_block(x)
     x = SpatialAttentionBlock2D(kernel_size=5)(x)
     x = layers.MaxPooling2D(pool_size=2)(x)
 
     x = layers.Conv2D(512, kernel_size=3, padding='same', activation='relu')(x)
+    x = se_block(x)
     x = SpatialAttentionBlock2D(kernel_size=5)(x)
     x = layers.MaxPooling2D(pool_size=2)(x)
 
     x = layers.Conv2D(1024, kernel_size=3, padding='same', activation='relu')(x)
+    x = se_block(x)
     x = SpatialAttentionBlock2D(kernel_size=5)(x)
     x = layers.MaxPooling2D(pool_size=1)(x)
 
     x = layers.Conv2D(2048, kernel_size=3, padding='same', activation='relu')(x)
+    x = se_block(x)
     x = SpatialAttentionBlock2D(kernel_size=5)(x)
     x = layers.BatchNormalization()(x)
     x = layers.Dropout(0.5)(x)
@@ -74,8 +84,8 @@ if __name__ == "__main__":
     model = AGCNN(num_classes=2)
     model.summary()
 
-    example_input = np.random.rand(16, 224, 224, 3).astype(np.float32)  
-    example_labels = np.random.randint(0, 2, size=(16,))  
+    example_input = np.random.rand(16, 224, 224, 3).astype(np.float32)
+    example_labels = np.random.randint(0, 2, size=(16,))
     train_dataset = tf.data.Dataset.from_tensor_slices((example_input, example_labels))
     train_dataset = train_dataset.map(preprocess_dataset).batch(4)
     trained_model = train_agcnn_model(model, train_dataset)
