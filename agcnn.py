@@ -26,37 +26,37 @@ def AGCNN(num_classes=2):
     inputs = tf.keras.Input(shape=(224, 224, 3))
 
     x = layers.Conv2D(32, kernel_size=3, padding='same', activation='relu')(inputs)
-    x = se_block(x)
+    x = SE.se_block(x)
     x = SpatialAttentionBlock2D(kernel_size=5)(x)
     x = layers.MaxPooling2D(pool_size=2)(x)
 
     x = layers.Conv2D(64, kernel_size=3, padding='same', activation='relu')(x)
-    x = se_block(x)
+    x = SE.se_block(x)
     x = SpatialAttentionBlock2D(kernel_size=5)(x)
     x = layers.MaxPooling2D(pool_size=2)(x)
 
     x = layers.Conv2D(128, kernel_size=3, padding='same', activation='relu')(x)
-    x = se_block(x)
+    x = SE.se_block(x)
     x = SpatialAttentionBlock2D(kernel_size=5)(x)
     x = layers.MaxPooling2D(pool_size=2)(x)
 
     x = layers.Conv2D(256, kernel_size=3, padding='same', activation='relu')(x)
-    x = se_block(x)
+    x = SE.se_block(x)
     x = SpatialAttentionBlock2D(kernel_size=5)(x)
     x = layers.MaxPooling2D(pool_size=2)(x)
 
     x = layers.Conv2D(512, kernel_size=3, padding='same', activation='relu')(x)
-    x = se_block(x)
+    x = SE.se_block(x)
     x = SpatialAttentionBlock2D(kernel_size=5)(x)
     x = layers.MaxPooling2D(pool_size=2)(x)
 
     x = layers.Conv2D(1024, kernel_size=3, padding='same', activation='relu')(x)
-    x = se_block(x)
+    x = SE.se_block(x)
     x = SpatialAttentionBlock2D(kernel_size=5)(x)
     x = layers.MaxPooling2D(pool_size=1)(x)
 
     x = layers.Conv2D(2048, kernel_size=3, padding='same', activation='relu')(x)
-    x = se_block(x)
+    x = SE.se_block(x)
     x = SpatialAttentionBlock2D(kernel_size=5)(x)
     x = layers.BatchNormalization()(x)
     x = layers.Dropout(0.5)(x)
@@ -89,3 +89,6 @@ if __name__ == "__main__":
     train_dataset = tf.data.Dataset.from_tensor_slices((example_input, example_labels))
     train_dataset = train_dataset.map(preprocess_dataset).batch(4)
     trained_model = train_agcnn_model(model, train_dataset)
+    model_save_path = 'agcnn.h5'
+    trained_model.save(model_save_path)
+    print(f"Model saved to {model_save_path}")
