@@ -2,9 +2,6 @@ import tensorflow as tf
 import numpy as np
 import pandas as pd
 import cv2
-from tensorflow.keras.applications import ResNet50
-from tensorflow.keras.preprocessing.image import ImageDataGenerator
-from tensorflow.keras.applications.resnet50 import preprocess_input
 
 def preprocess_data(dataset_path, batch_size=32):
     def custom_preprocess_image(image):
@@ -51,10 +48,11 @@ def extract_features(cnn_model, dataset):
     return df
     
 if __name__ == "__main__":
-    dataset_path = ''
+    dataset_path = 'path/to/your/dataset'
     batch_size = 32
 
-    cnn_model = ResNet50(weights='imagenet', include_top=False, pooling='avg')
+    model_path = 'agcnn.h5'
+    cnn_model = tf.keras.models.load_model(model_path, custom_objects={'SpatialAttentionBlock2D': SpatialAttentionBlock2D, 'se_block': SE.se_block})
 
     dataset = preprocess_data(dataset_path, batch_size=batch_size)
     features_df = extract_features(cnn_model, dataset)
